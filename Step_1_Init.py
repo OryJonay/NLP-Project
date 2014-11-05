@@ -3,6 +3,7 @@ from pymongo import MongoClient
 
 def main():
     x=7
+    y=8
     input = open(sys.argv[1], encoding='utf-8')
     words = MongoClient().db.words
     words2 = MongoClient().db.words2
