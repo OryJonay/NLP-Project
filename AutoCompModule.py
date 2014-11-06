@@ -1,5 +1,4 @@
 import pymongo, os, sys, re
-from pymongo import MongoClient
 from pymongo import Connection
 
 class AutoCompModule:
