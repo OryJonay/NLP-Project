@@ -1,12 +1,13 @@
 import pymongo, os, sys, re
 from pymongo import MongoClient
+from pymongo import Connection
 
 class AutoCompModule:
 
     def __init__(self,DBName):
-        self.dict = MongoClient().locals()[DBName].dict
-        self.dictBy2 = MongoClient().locals()[DBName].dictBy2
-        self.dictBy3 = MongoClient().locals()[DBName].dictBy3
+        self.dict = Connection()[DBName]['dict']
+        self.dictBy2 = Connection()[DBName]['dictBy2']
+        self.dictBy3 = Connection()[DBName]['dictBy3']
     
     def learnSingle(self,fileName):
         input = open(fileName, encoding='utf-8')
