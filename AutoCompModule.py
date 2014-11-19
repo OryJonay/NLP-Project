@@ -111,9 +111,9 @@ class AutoCompModule:
             pprev = prev = None
             for word in line.split():
                 if re.match("[.,\"\(\);']",word):
-                pprev = prev = word = None
-                i = num
-                continue
+                    pprev = prev = word = None
+                    i = num
+                    continue
             if i != 0:
                 i -= 1
                 pprev = prev
