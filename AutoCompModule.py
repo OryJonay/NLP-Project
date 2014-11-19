@@ -41,10 +41,10 @@ class AutoCompModule:
             for f in sorted(os.listdir(inputDir)):
                 self.learnSingle(inputDir + '/' + f)
                 print ("SUCCESS LEARNING FOR \n",f)    
-            for entity in self.dictBy3.find():
+            for entity in self.dictBy3.find(timeout=False):
                 amount = self.dictBy2.find_one({"first": entity["first"],"second": entity["second"]})["grade"]
                 self.dictBy3.update({"first": entity["first"],"second": entity["second"],"third": entity["third"]},{ "$set": {"probGrade": entity["grade"]/amount }})
-            for entity in self.dictBy2.find():
+            for entity in self.dictBy2.find(timeout=False):
                 amount = self.dict.find_one({"word": entity["first"]})["amount"]
                 self.dictBy2.update({"first": entity["first"],"second": entity["second"]}, { "$set": {"probGrade": entity["grade"]/amount}})
             print ("SUCCESS LEARNING FINISH\n")
