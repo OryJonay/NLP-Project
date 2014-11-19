@@ -2,7 +2,7 @@ import pymongo, os, sys
 from pymongo import MongoClient
 
 def main():
-    x=5
+    x=7
     input = open(sys.argv[1], encoding='utf-8')
     words = MongoClient().db.words
     words2 = MongoClient().db.words2
