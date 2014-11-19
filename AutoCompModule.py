@@ -102,7 +102,7 @@ class AutoCompModule:
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
     
-    def probTest(self, testFile, num):
+    def probTestSingle(self, testFile, num):
         test = open(testFile,'r',encoding='utf-8')
         biScore = triScore = 0.0
         biChecks = triChecks = 0
@@ -131,3 +131,15 @@ class AutoCompModule:
                     prev=word
         test.close()
         return biScore/biChecks, triScore/triChecks
+
+    def probTest(self,inputDir,num):
+        sum1 = sum2 = 0
+        numOfFiles = 0
+        if os.path.isdir(inputDir):
+            for f in sorted(os.listdir(inputDir)):
+                x1,x2 = self.probTestSingle(inputDir + '/' + f,num)
+                sum1+=x1
+                sum2+=x2
+                numOfFiles+=1
+            return sum1/numOfFiles, sum2/numOfFiles
+        return "input Error"
