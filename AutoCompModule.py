@@ -26,29 +26,28 @@ class AutoCompModule:
                     if self.dictBy2.find_one({"first": prev,"second": word,"grade": { "$exists": True}}) != None:
                         self.dictBy2.update({"first": prev,"second": word},{ "$inc": {"grade":1}})
                     else:
-                        self.dictBy2.insert({"first": prev,"second": word,"grade":1})
+                        self.dictBy2.insert({"first": prev,"second": word,"grade":1,"probGrade":0.0})
                     if pprev!=None:
                         if self.dictBy3.find_one({"first": pprev,"second": prev,"third": word,"grade": { "$exists": True}}) != None:
                                   self.dictBy3.update({"first": pprev,"second": prev,"third": word},{ "$inc": {"grade":1}})
                         else:
-                            self.dictBy3.insert({"first": pprev,"second": prev,"third": word,"grade":1})
+                            self.dictBy3.insert({"first": pprev,"second": prev,"third": word,"grade":1,"probGrade":0.0})
                     pprev=prev
                 prev = word
-
-        for entity in self.dictBy3.find():
-            amount = self.dictBy2.find_one({"first": entity["first"],"second": entity["second"]})["grade"]
-            self.dictBy3.update({"first": entity["first"],"second": entity["second"],"third": entity["third"]},{ "$set": {"grade": entity["grade"]/amount }})
-        for entity in self.dictBy2.find():
-            amount = self.dict.find_one({"word": entity["first"]})["amount"]
-            self.dictBy2.update({"first": entity["first"],"second": entity["second"]}, { "$set": {"grade": entity["grade"]/amount}})
-
         input.close()
 
     def learn(self,inputDir):
         if os.path.isdir(inputDir):
             for f in sorted(os.listdir(inputDir)):
                 self.learnSingle(inputDir + '/' + f)
-            print ("SUCCESS LEARNING")
+                print ("SUCCESS LEARNING FOR \n",f)    
+            for entity in self.dictBy3.find():
+                amount = self.dictBy2.find_one({"first": entity["first"],"second": entity["second"]})["grade"]
+                self.dictBy3.update({"first": entity["first"],"second": entity["second"],"third": entity["third"]},{ "$set": {"probGrade": entity["grade"]/amount }})
+            for entity in self.dictBy2.find():
+                amount = self.dict.find_one({"word": entity["first"]})["amount"]
+                self.dictBy2.update({"first": entity["first"],"second": entity["second"]}, { "$set": {"probGrade": entity["grade"]/amount}})
+            print ("SUCCESS LEARNING FINISH\n")
         else:
             print ("ERROR!!")
 
@@ -56,8 +55,8 @@ class AutoCompModule:
         if prev is None:
             return None , None
         if pprev is None:
-            return self.dictBy2.find_one({"first": prev},sort=[("grade",-1),("second",1)])["second"] , None
-        return self.dictBy2.find_one({"first": prev},sort=[("grade",-1),("second",1)])["second"] , self.dictBy3.find_one({"first": pprev, "second": prev},sort=[("grade",-1),("third",1)])["third"]
+            return self.dictBy2.find_one({"first": prev},sort=[("probGrade",-1),("second",1)])["second"] , None
+        return self.dictBy2.find_one({"first": prev},sort=[("probGrade",-1),("second",1)])["second"] , self.dictBy3.find_one({"first": pprev, "second": prev},sort=[("probGrade",-1),("third",1)])["third"]
     
     def simpleTestSingle(self, testFile, num):
         test = open(testFile,'r',encoding='utf-8')
@@ -102,7 +101,7 @@ class AutoCompModule:
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
     
-    def probTestSingle(self, testFile, num):
+    def probTestSingle(self, testFile, num):    
         test = open(testFile,'r',encoding='utf-8')
         biScore = triScore = 0.0
         biChecks = triChecks = 0
@@ -121,10 +120,10 @@ class AutoCompModule:
                 else:
                     a,b = self.suggest(pprev,prev)
                     if a is not None:
-                        biScore += (self.dictBy2.find_one({"first": prev, "second": word})["grade"])/(self.dictBy2.find_one({"first": prev, "second": a})["grade"])
+                        biScore += (self.dictBy2.find_one({"first": prev, "second": word})["probGrade"])/(self.dictBy2.find_one({"first": prev, "second": a})["probGrade"])
                         biChecks += 1
                     if b is not None:
-                        triScore += (self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})["grade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["grade"])
+                        triScore += (self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})["probGrade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["probGrade"])
                         triChecks += 1
                     i=num
                     pprev=prev
