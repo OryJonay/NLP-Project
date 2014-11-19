@@ -59,7 +59,7 @@ class AutoCompModule:
             return self.dictBy2.find_one({"first": prev},sort=[("grade",-1),("second",1)])["second"] , None
         return self.dictBy2.find_one({"first": prev},sort=[("grade",-1),("second",1)])["second"] , self.dictBy3.find_one({"first": pprev, "second": prev},sort=[("grade",-1),("third",1)])["third"]
     
-    def simpleTest(self, testFile, num):
+    def simpleTestSingle(self, testFile, num):
         test = open(testFile,'r',encoding='utf-8')
         numOfChecks1 = numOfChecks2 = succ1 = succ2 = 0
         i = num
@@ -89,4 +89,15 @@ class AutoCompModule:
                     prev=word
         test.close()
         return succ1/numOfChecks1, succ2/numOfChecks2
-            
+
+    def simpleTest(self,inputDir,num):
+        sum1 = sum2 = 0
+        numOfFiles = 0
+        if os.path.isdir(inputDir):
+            for f in sorted(os.listdir(inputDir)):
+                x1,x2 = self.simpleTestSingle(inputDir + '/' + f,num)
+                sum1+=x1
+                sum2+=x2
+                numOfFiles+=1
+            return sum1/numOfFiles, sum2/numOfFiles
+        return "input Error"
