@@ -101,3 +101,33 @@ class AutoCompModule:
                 numOfFiles+=1
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
+    
+    def probTest(self, testFile, num):
+        test = open(testFile,'r',encoding='utf-8')
+        biScore = triScore = 0.0
+        biChecks = triChecks = 0
+        i = num
+        for line in test:
+            pprev = prev = None
+            for word in line.split():
+                if re.match("[.,\"\(\);']",word):
+                pprev = prev = word = None
+                i = num
+                continue
+            if i != 0:
+                i -= 1
+                pprev = prev
+                prev = word
+            else:
+                a,b = self.suggest(pprev,prev)
+                if a is not None:
+                    biScore += (self.dictBy2.find_one({"first": prev, "second": word})["grade"])/(self.dictBy2.find_one({"first": prev, "second": a})["grade"])
+                    biChecks += 1
+                    if b is not None:
+                        triScore += (self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})["grade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["grade"])
+                        triChecks += 1
+                    i=num
+                    pprev=prev
+                    prev=word
+        test.close()
+        return biScore/biChecks, triScore/triChecks
