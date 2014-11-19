@@ -114,21 +114,21 @@ class AutoCompModule:
                     pprev = prev = word = None
                     i = num
                     continue
-            if i != 0:
-                i -= 1
-                pprev = prev
-                prev = word
-            else:
-                a,b = self.suggest(pprev,prev)
-                if a is not None:
-                    biScore += (self.dictBy2.find_one({"first": prev, "second": word})["grade"])/(self.dictBy2.find_one({"first": prev, "second": a})["grade"])
-                    biChecks += 1
-                if b is not None:
-                    triScore += (self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})["grade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["grade"])
-                    triChecks += 1
-                i=num
-                pprev=prev
-                prev=word
+                if i != 0:
+                    i -= 1
+                    pprev = prev
+                    prev = word
+                else:
+                    a,b = self.suggest(pprev,prev)
+                    if a is not None:
+                        biScore += (self.dictBy2.find_one({"first": prev, "second": word})["grade"])/(self.dictBy2.find_one({"first": prev, "second": a})["grade"])
+                        biChecks += 1
+                    if b is not None:
+                        triScore += (self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})["grade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["grade"])
+                        triChecks += 1
+                    i=num
+                    pprev=prev
+                    prev=word
         test.close()
         return biScore/biChecks, triScore/triChecks
 
