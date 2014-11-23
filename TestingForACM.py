@@ -5,7 +5,7 @@ import pymongo, os, sys, re
 # Testing for the AutoCompModule
 
 
-def simpleTestSingle(self, testFile, num):
+def simpleTestSingle(ACM, testFile, num):
         test = open(testFile,'r',encoding='utf-8')
         numOfChecks1 = numOfChecks2 = succ1 = succ2 = 0
         i = num
@@ -21,7 +21,7 @@ def simpleTestSingle(self, testFile, num):
                     pprev = prev
                     prev = word
                 else:
-                    a,b = self.suggest(pprev,prev)
+                    a,b = ACM.suggest(pprev,prev)
                     if a is not None:
                         if a is word:
                             succ1+=1
@@ -36,19 +36,19 @@ def simpleTestSingle(self, testFile, num):
         test.close()
         return succ1/numOfChecks1, succ2/numOfChecks2
 
-def simpleTest(self,inputDir,num):
+def simpleTest(ACM,inputDir,num):
         sum1 = sum2 = 0
         numOfFiles = 0
         if os.path.isdir(inputDir):
             for f in sorted(os.listdir(inputDir)):
-                x1,x2 = simpleTestSingle(self,inputDir + '/' + f,num)
+                x1,x2 = simpleTestSingle(ACM,inputDir + '/' + f,num)
                 sum1+=x1
                 sum2+=x2
                 numOfFiles+=1
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
     
-def probTestSingle(self, testFile, num):    
+def probTestSingle(ACM, testFile, num):    
         test = open(testFile,'r',encoding='utf-8')
         biScore = triScore = 0.0
         biChecks = triChecks = 0
@@ -65,20 +65,12 @@ def probTestSingle(self, testFile, num):
                     pprev = prev
                     prev = word
                 else:
-                    a,b = self.suggest(pprev,prev)
-                    c = self.dictBy2.find_one({"first": prev, "second": word})
-                    d = self.dictBy3.find_one({"first": pprev, "second": prev, "third": word})
+                    a,b = ACM.suggest(pprev,prev)
                     if a is not None:
-                        if c is not None:
-                            biScore += (c["grade"])/(self.dictBy2.find_one({"first": prev, "second": a})["grade"])
-                        else:
-                            biScore = biScore
+                        biScore += (ACM.smooth(None,prev,word)/(ACM.smooth(None,prev,a)))
                         biChecks += 1
                     if b is not None:
-                        if d is not None:
-                            triScore += (d["grade"])/(self.dictBy3.find_one({"first": pprev, "second": prev, "third": b})["grade"])
-                        else:
-                            triScore = triScore
+                        triScore += (ACM.smooth(pprev,prev,word))/(ACM.smooth(pprev,prev,b))
                         triChecks += 1
                     i=num
                     pprev=prev
@@ -86,12 +78,12 @@ def probTestSingle(self, testFile, num):
         test.close()
         return biScore/biChecks, triScore/triChecks
 
-def probTest(self,inputDir,num):
+def probTest(ACM,inputDir,num):
         sum1 = sum2 = 0
         numOfFiles = 0
         if os.path.isdir(inputDir):
             for f in sorted(os.listdir(inputDir)):
-                x1,x2 = probTestSingle(self,inputDir + '/' + f,num)
+                x1,x2 = probTestSingle(ACM,inputDir + '/' + f,num)
                 sum1+=x1
                 sum2+=x2
                 numOfFiles+=1
@@ -111,12 +103,12 @@ def main():
     TestType = sys.argv[3]
     numOfChecks = int(sys.argv[4])
 
-    DB = AutoCompModule(DBname)
+    ACM = AutoCompModule(DBname)
     
     if TestType == 's':
-        print (simpleTest(DB,Indir,numOfChecks))
+        print (simpleTest(ACM,Indir,numOfChecks))
     else:
-        print (probTest(DB,Indir,numOfChecks))
+        print (probTest(ACM,Indir,numOfChecks))
 
 
 if __name__ == '__main__':
