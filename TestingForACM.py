@@ -104,6 +104,8 @@ def probTest(self,inputDir,num):
 #   3 - the test type
 #   4 - num of checks
 def main():
+    if len(sys.argv) is not 5:
+        print ("Error - too few arguments. Arguments are: Database Name, Inpurt Directory, Test Type, Number of words to see\n")
     DBname = sys.argv[1]
     Indir = sys.argv[2]
     TestType = sys.argv[3]
