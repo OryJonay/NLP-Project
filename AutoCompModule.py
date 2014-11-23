@@ -1,6 +1,8 @@
 import pymongo, os, sys, re
 from pymongo import Connection
 
+
+
 class AutoCompModule:
 
     # Auto completion module
@@ -83,4 +85,34 @@ class AutoCompModule:
         else:
             return None , None
     
-
+    # Method to smooth out probabilities.
+    # The smoothing method we chose is Good Turing Smoothing.
+    # p(w) = ((r+1)*((N_r_+_1)/(N_r)))/N
+    # Parameters: pprev, prev, word
+    def smooth(self,pprev=None,prev=None,word):
+        r = N_r_1 = N_r =  N = 0
+        if pprev is None and prev is None: #pprev & prev are None
+            r = self.dict.find_one({"word":word})["grade"]
+            if r is None:
+                r = 0
+            N = self.dict.find().count()
+            N_r_1 = self.dict.find({"grade": r+1}).count()
+            N_r = self.dict.find({"grade": r}).count()
+            return ((r+1)*(N_r_1/N_r))/N
+        else: #pprev is either None or not None (if pprev is given, prev must be given)
+            if pprev is None:
+                r = self.dictBy2.find_one({"first":prev,"second":word})["grade"]
+                if r is None:
+                    r = 0
+                N = self.dictBy2.find().count()
+                N_r_1 = self.dictBy2.find({"grade": r+1}).count()
+                N_r = self.dictBy2.find({"grade": r}).count()
+                return ((r+1)*(N_r_1/N_r))/N
+            else:
+                r = self.dictBy3.find_one({"first":pprev,"second":prev,"third":word})["grade"]
+                if r is None:
+                    r = 0
+                N = self.dictBy3.find().count()
+                N_r_1 = self.dictBy3.find({"grade": r+1})
+                N_r = self.dictBy3.find({"grade": r})
+                return ((r+1)*(N_r_1/N_r))/N
