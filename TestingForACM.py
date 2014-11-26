@@ -67,10 +67,10 @@ def probTestSingle(ACM, testFile, num):
                 else:
                     a,b = ACM.suggest(pprev,prev)
                     if a is not None:
-                        biScore += (ACM.smooth(None,prev,word)/(ACM.smooth(None,prev,a)))
+                        biScore += (ACM.smooth(word,None,prev)/(ACM.smooth(a,None,prev)))
                         biChecks += 1
                     if b is not None:
-                        triScore += (ACM.smooth(pprev,prev,word))/(ACM.smooth(pprev,prev,b))
+                        triScore += (ACM.smooth(word,pprev,prev))/(ACM.smooth(b,pprev,prev))
                         triChecks += 1
                     i=num
                     pprev=prev
@@ -113,5 +113,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print ("Working\n")
     main()

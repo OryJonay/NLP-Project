@@ -53,10 +53,14 @@ class AutoCompModule:
     # Method to learn from multiple files
     # Uses learnSingle Method
     def learn(self,inputDir):
+        size = len(os.listdir(inputDir))
+        i=1
         if os.path.isdir(inputDir):
             for f in sorted(os.listdir(inputDir)):
                 self.learnSingle(inputDir + '/' + f)
-                print ("SUCCESS LEARNING FOR \n",f)    
+                sys.stdout.flush()
+                print(str(int((i*100)/size))+"%",end="\r") 
+                i+=1   
             print ("SUCCESS LEARNING FINISH\n")
         else:
             print ("ERROR!!")
@@ -89,7 +93,7 @@ class AutoCompModule:
     # The smoothing method we chose is Good Turing Smoothing.
     # p(w) = ((r+1)*((N_r_+_1)/(N_r)))/N
     # Parameters: pprev, prev, word
-    def smooth(self,pprev=None,prev=None,word):
+    def smooth(self,word,pprev=None,prev=None):
         r = N_r_1 = N_r =  N = 0
         if pprev is None and prev is None: #pprev & prev are None
             r = self.dict.find_one({"word":word})["grade"]
