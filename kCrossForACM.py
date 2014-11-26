@@ -23,8 +23,8 @@ def main():
         ACM = AutoCompModule('DB_'+str((i+1)))
         ACM.learn(inDir)
         print("iter num:"+str(i+1)+" checking every: "+str(numOfChecks))
-        print(" simple test result:",simpleTest(ACM,'Test',numOfChecks),end = ' ')
-        print(" prob test result:",probTest(ACM,'Test',numOfChecks))
+        print(" simple test result:",round(simpleTest(ACM,'Test',numOfChecks)*100,2),end = ' ')
+        print(" prob test result:",round(probTest(ACM,'Test',numOfChecks)*100,2))
         i+=1
         for file in os.listdir('Test'):
             shutil.move(file,inDir)

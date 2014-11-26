@@ -61,7 +61,7 @@ class AutoCompModule:
                 sys.stdout.flush()
                 print(str(int((i*100)/size))+"%",end="\r") 
                 i+=1   
-            print ("SUCCESS LEARNING FINISH\n")
+            print ("SUCCESS LEARNING FINISH")
         else:
             print ("ERROR!!")
 
@@ -101,7 +101,10 @@ class AutoCompModule:
                 r = 0
             N = self.dict.find().count()
             N_r_1 = self.dict.find({"grade": r+1}).count()
-            N_r = self.dict.find({"grade": r}).count()
+            if r is 0:
+                N_r = 1
+            else:
+                N_r = self.dict.find({"grade": r}).count()
             return ((r+1)*(N_r_1/N_r))/N
         else: #pprev is either None or not None (if pprev is given, prev must be given)
             if pprev is None:
@@ -110,7 +113,10 @@ class AutoCompModule:
                     r = 0
                 N = self.dictBy2.find().count()
                 N_r_1 = self.dictBy2.find({"grade": r+1}).count()
-                N_r = self.dictBy2.find({"grade": r}).count()
+                if r is 0:
+                    N_r = 1
+                else:
+                    N_r = self.dictBy2.find({"grade": r}).count()
                 return ((r+1)*(N_r_1/N_r))/N
             else:
                 r = self.dictBy3.find_one({"first":pprev,"second":prev,"third":word})["grade"]
@@ -118,5 +124,8 @@ class AutoCompModule:
                     r = 0
                 N = self.dictBy3.find().count()
                 N_r_1 = self.dictBy3.find({"grade": r+1})
-                N_r = self.dictBy3.find({"grade": r})
+                if r is 0:
+                    N_r = 1
+                else:
+                    N_r = self.dictBy3.find({"grade": r})
                 return ((r+1)*(N_r_1/N_r))/N

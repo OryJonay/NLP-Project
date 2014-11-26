@@ -107,9 +107,9 @@ def main():
     ACM = AutoCompModule(DBname)
     
     if TestType == 's':
-        print (simpleTest(ACM,Indir,numOfChecks))
+        print (round(simpleTest(ACM,Indir,numOfChecks)*100,2))
     else:
-        print (probTest(ACM,Indir,numOfChecks))
+        print (round(probTest(ACM,Indir,numOfChecks)*100,2))
 
 
 if __name__ == '__main__':
