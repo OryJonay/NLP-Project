@@ -89,43 +89,40 @@ class AutoCompModule:
         else:
             return None , None
     
-    # Method to smooth out probabilities.
-    # The smoothing method we chose is Good Turing Smoothing.
-    # p(w) = ((r+1)*((N_r_+_1)/(N_r)))/N
-    # Parameters: pprev, prev, word
-    def smooth(self,word,pprev=None,prev=None):
-        r = N_r_1 = N_r =  N = 0
-        if pprev is None and prev is None: #pprev & prev are None
-            r = self.dict.find_one({"word":word})["grade"]
-            if r is None:
-                r = 0
-            N = self.dict.find().count()
-            N_r_1 = self.dict.find({"grade": r+1}).count()
-            if r is 0:
-                N_r = 1
-            else:
-                N_r = self.dict.find({"grade": r}).count()
-            return ((r+1)*(N_r_1/N_r))/N
-        else: #pprev is either None or not None (if pprev is given, prev must be given)
-            if pprev is None:
-                r = self.dictBy2.find_one({"first":prev,"second":word})["grade"]
-                if r is None:
-                    r = 0
-                N = self.dictBy2.find().count()
-                N_r_1 = self.dictBy2.find({"grade": r+1}).count()
-                if r is 0:
-                    N_r = 1
+    def suggest2(self,pprev=None,prev=None,x=5):
+        if prev is None:
+            return None , None
+        if pprev is None:
+            i=0
+            lst=[]
+            for a in self.dictBy2.find({"first": prev}).sort([('grade',-1),('second',1)]):
+                if i<x:
+                    lst.append(a)
+                    i+=1
                 else:
-                    N_r = self.dictBy2.find({"grade": r}).count()
-                return ((r+1)*(N_r_1/N_r))/N
+                    break
+            if lst is []:
+                res = None
             else:
-                r = self.dictBy3.find_one({"first":pprev,"second":prev,"third":word})["grade"]
-                if r is None:
-                    r = 0
-                N = self.dictBy3.find().count()
-                N_r_1 = self.dictBy3.find({"grade": r+1})
-                if r is 0:
-                    N_r = 1
+                res = [(a["grade"],a["second"]) for a in lst]       
+            return res, None
+        i=0
+        lstBy2=[]
+        lstBy3=[]
+        for a in self.dictBy2.find({"first": prev}).sort([('grade',-1),('second',1)]):
+                if i<x:
+                    lstBy2.append(a)
+                    i+=1
                 else:
-                    N_r = self.dictBy3.find({"grade": r})
-                return ((r+1)*(N_r_1/N_r))/N
+                    break 
+        i=0
+        for a in self.dictBy3.find({"first": pprev,"second":prev}).sort([('grade',-1),('second',1)]):
+                if i<x:
+                    lstBy3.append(a)
+                    i+=1
+                else:
+                    break
+        if lstBy3 is []:
+            return None, None
+        return [(a["grade"],a["second"]) for a in lstBy2] , [(a["grade"],a["third"]) for a in lstBy3]
+    
