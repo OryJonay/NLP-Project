@@ -70,7 +70,7 @@ class AutoCompModule:
         wordDict = malletGetWordsAndData(wtcfile, twwfile, keysfile)
         for word in wordDict:
             if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
-                    self.dict.update({"word": word},{"info": wordDict[word]}) #####################################
+                    self.dict.update({"word": word},{"$set":{"info": wordDict[word]}}) #####################################
 
 
     # Method that suggests the next word
@@ -128,45 +128,51 @@ class AutoCompModule:
                 return res1,[[a["grade"],a["third"]] for a in lstBy3]
 
 def malletGetWordTopicCounts(wtcfile):
-    input = open(wtcfile, encoding='utf-8')
-    wordDict = {}
-    for line in input:
-        tmp = line.split()
-        tmp.remove(tmp[0])
-        word = tmp[0]
-        tmp.remove(tmp[0])
-        wordData = []
-        for tc in tmp:
-            topicCount = tc.split(':')
-            wordData += [[topicCount[0], topicCount[1], 0, 0]]
-        wordDict[word] = wordData
-    input.close()
-    return wordDict
+    with open(wtcfile,'r', encoding='utf-8') as input:
+        wordDict = {}
+        for line in input:
+            tmp = line.split()
+            tmp.remove(tmp[0])
+            word = tmp[0]
+            tmp.remove(tmp[0])
+            wordData = []
+            for tc in tmp:
+                topicCount = tc.split(':')
+                wordData += [[int(topicCount[0]), int(topicCount[1]), 0.0, False]]
+            wordDict[word] = wordData
+        return wordDict
 
 def malletAddWeightsToWordDict(twwfile, wordDict):
-    input = open(twwfile, encoding='utf-8')
-    for line in input:
-        tww = line.split()
-        for wordData in wordDict[tww[1]]:
-            if wordData[0] == tww[0]:
-                wordData[2] = tww[2]
-    input.close()
+    with open(twwfile, encoding='utf-8') as input:
+        for line in input:
+            tww = line.split()
+            for wordData in wordDict[tww[1]]:
+                if wordData[0] == int(tww[0]):
+                    wordData[2] = float(tww[2])
             
 def malletAddKeysToWordDict(keysfile, wordDict):
-    input = open(keysfile, encoding='utf-8')
-    for line in input:
-        tmp = line.split()
-        topic = tmp[0]
-        tmp.remove(tmp[0])
-        tmp.remove(tmp[0])
-        for word in tmp:
-            for wordData in wordDict[word]:
-                if wordData[0] == topic:
-                    wordData[3] = 1
-    input.close()
+    with open(keysfile, encoding='utf-8') as input:
+        for line in input:
+            tmp = line.split()
+            topic = int(tmp[0])
+            tmp.remove(tmp[0])
+            tmp.remove(tmp[0])
+            for word in tmp:
+                for wordData in wordDict[word]:
+                    if wordData[0] == topic:
+                        wordData[3] = True
 
 def malletGetWordsAndData(wtcfile, twwfile, keysfile):
     wordDict = malletGetWordTopicCounts(wtcfile)
     malletAddWeightsToWordDict(twwfile, wordDict)
     malletAddKeysToWordDict(keysfile, wordDict)
     return wordDict
+
+   
+def main():
+    ACM = AutoCompModule('test')
+    ACM.learn('heb')
+    ACM.addMalletInfoToDB('heb-wtcf.txt', 'heb-twwf.txt', 'heb-keys.txt')
+
+if __name__=='__main__':
+    main()
