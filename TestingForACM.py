@@ -61,7 +61,8 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList):
             if lst1 is None:
                 return None
             if lst2 is None:
-                return max(lst1)[1]
+                lst1.sort()
+                return [lst1[i][1] for i in range(len(lst1)) if i <= 4]
             resLst = []
             for a in lst1:
                 for b in lst2:
@@ -77,7 +78,8 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList):
                         break
                 if not flag:
                     resLst.append(b)
-            return max(resLst)[1]
+            resLst.sort(reverse=True)
+            return [lst1[i][1] for i in range(len(lst1)) if i <= 4]
 
         for line in test:
             pprev = prev = None
@@ -94,7 +96,7 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList):
                     lstBy2,lstBy3 = ACM.suggest2(pprev,prev,numOfElemList)
                     a = alphaFunc(lstBy2,lstBy3)
                     if a is not None:
-                        if a is word:
+                        if word in a:
                             succ+=1
                         numOfChecks+=1
                     i=num
@@ -195,20 +197,20 @@ def main():
     DBname = sys.argv[1]
     Indir = sys.argv[2]
     action = sys.argv[3]
-    if action != 'l':
+    if action != 'learn':
         numOfChecks = int(sys.argv[4])
 
     ACM = AutoCompModule(DBname)
     
-    if action == 'l':
+    if action == 'learn':
         ACM.learn(Indir)
-    if action == 's':
+    if action == 'simple':
         (x,y) = simpleTest(ACM,Indir,numOfChecks)
         print (round(x*100,2),round(y*100,2))
-    if action == 'p':
+    if action == 'prob':
         (x,y) = probTest(ACM,Indir,numOfChecks)
         print (round(x*100,2),round(y*100,2))
-    if action == 'i':
+    if action == 'isimple':
         numElem = int(sys.argv[5])
         x = impSimTest(ACM,Indir,numOfChecks,numElem)
         print (round(x*100,2))

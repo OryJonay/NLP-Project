@@ -33,7 +33,7 @@ class AutoCompModule:
                 if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
                     self.dict.update({"word": word},{ "$inc": {"grade":1}})
                 else:
-                    self.dict.insert({"word": word, "grade":1})
+                    self.dict.insert({"word": word, "grade":1, "info": None})
             
                 if prev!=None:
                     if self.dictBy2.find_one({"first": prev,"second": word,"grade": { "$exists": True}}) != None:
@@ -66,13 +66,20 @@ class AutoCompModule:
             print ("ERROR!!")
 
 
+    def addMalletInfoToDB(self, wtcfile, twwfile, keysfile):
+        wordDict = malletGetWordsAndData(wtcfile, twwfile, keysfile)
+        for word in wordDict:
+            if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
+                    self.dict.update({"word": word},{"info": wordDict[word]}) #####################################
+
+
     # Method that suggests the next word
     # For a given pprev and prev (definitions mentioned above) it finds the most likely word, one time
     # using only prev and the second using both pprev and prev
     # 
     # This method returns both NONE and NOT NONE values
     # None values are returned when there is no match to prev (or pprev and prev) in the dictionaries 
-    # or when they are gives as NONE
+    # or when they are given as NONE
     def suggest(self,pprev=None,prev=None):
         if prev is None:
             return None , None
@@ -92,37 +99,74 @@ class AutoCompModule:
     def suggest2(self,pprev=None,prev=None,x=5):
         if prev is None:
             return None , None
-        if pprev is None:
-            i=0
-            lst=[]
-            for a in self.dictBy2.find({"first": prev}).sort([('grade',-1),('second',1)]):
-                if i<x:
-                    lst.append(a)
-                    i+=1
-                else:
-                    break
-            if lst is []:
-                res = None
-            else:
-                res = [(a["grade"],a["second"]) for a in lst]       
-            return res, None
         i=0
-        lstBy2=[]
-        lstBy3=[]
+        lst=[]
         for a in self.dictBy2.find({"first": prev}).sort([('grade',-1),('second',1)]):
-                if i<x:
-                    lstBy2.append(a)
-                    i+=1
-                else:
-                    break 
-        i=0
-        for a in self.dictBy3.find({"first": pprev,"second":prev}).sort([('grade',-1),('second',1)]):
-                if i<x:
-                    lstBy3.append(a)
-                    i+=1
-                else:
-                    break
-        if lstBy3 is []:
+            if i<x:
+                lst.append(a)
+                i+=1
+            else:
+                break
+        if lst == []:
             return None, None
-        return [(a["grade"],a["second"]) for a in lstBy2] , [(a["grade"],a["third"]) for a in lstBy3]
-    
+        else:
+            res1 = [[a["grade"],a["second"]] for a in lst]       
+        if pprev is None:
+            return res1, None
+        else:
+            i=0
+            lstBy3=[]
+            for a in self.dictBy3.find({"first": pprev,"second":prev}).sort([('grade',-1),('second',1)]):
+                    if i<x:
+                        lstBy3.append(a)
+                        i+=1
+                    else:
+                        break
+            if lstBy3 is []:
+                return res1, None
+            else:
+                return res1,[[a["grade"],a["third"]] for a in lstBy3]
+
+def malletGetWordTopicCounts(wtcfile):
+    input = open(wtcfile, encoding='utf-8')
+    wordDict = {}
+    for line in input:
+        tmp = line.split()
+        tmp.remove(tmp[0])
+        word = tmp[0]
+        tmp.remove(tmp[0])
+        wordData = []
+        for tc in tmp:
+            topicCount = tc.split(':')
+            wordData += [[topicCount[0], topicCount[1], 0, 0]]
+        wordDict[word] = wordData
+    input.close()
+    return wordDict
+
+def malletAddWeightsToWordDict(twwfile, wordDict):
+    input = open(twwfile, encoding='utf-8')
+    for line in input:
+        tww = line.split()
+        for wordData in wordDict[tww[1]]:
+            if wordData[0] == tww[0]:
+                wordData[2] = tww[2]
+    input.close()
+            
+def malletAddKeysToWordDict(keysfile, wordDict):
+    input = open(keysfile, encoding='utf-8')
+    for line in input:
+        tmp = line.split()
+        topic = tmp[0]
+        tmp.remove(tmp[0])
+        tmp.remove(tmp[0])
+        for word in tmp:
+            for wordData in wordDict[word]:
+                if wordData[0] == topic:
+                    wordData[3] = 1
+    input.close()
+
+def malletGetWordsAndData(wtcfile, twwfile, keysfile):
+    wordDict = malletGetWordTopicCounts(wtcfile)
+    malletAddWeightsToWordDict(twwfile, wordDict)
+    malletAddKeysToWordDict(keysfile, wordDict)
+    return wordDict
