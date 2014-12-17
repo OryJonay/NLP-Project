@@ -228,40 +228,50 @@ def probTest(ACM,inputDir,num):
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
 
-def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics):
+def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics,numOfBestTopics):
     def topicFunc(lst1,lst2,numOfElemList):
             if lst1 is None:
                 if lst2 is None:
                     return None
                 else:
-                    return [lst2[i][4] for i in range(len(lst2)) if i <= (numOfElemList-1)]
+                    return [lst2[i][3] for i in range(len(lst2)) if i <= (numOfElemList-1)]
             if lst2 is None:
-                return [lst1[i][4] for i in range(len(lst1)) if i <= (numOfElemList-1)]
+                return [lst1[i][3] for i in range(len(lst1)) if i <= (numOfElemList-1)]
             resLst = []
             for a in lst1:
                 for b in lst2:
-                    if a[4]==b[4]:
-                        a[3]+=b[3]
+                    if a[3]==b[3]:
+                        a[2]+=b[2]
                         break
                 resLst.append(a)
             for b in lst2:
                 flag = False
                 for a in resLst:
-                    if a[4] == b[4]:
+                    if a[3] == b[3]:
                         flag = True
                         break
                 if not flag:
                     resLst.append(b)
             resLst.sort(reverse=True)
-            return [resLst[i][1] for i in range(len(resLst)) if i <= (numOfElemList-1)]
+            return [resLst[i][3] for i in range(len(resLst)) if i <= (numOfElemList-1)]
 
-    def fBestTopic(vtopics):
+    def fBestTopic(vtopics,numOfBestTopics):
         vtlist = []
         for t in vtopics:
             tmp = vtopics[t] + [t]
-            vtlist += tmp
+            vtlist += [tmp]
         vtlist.sort(reverse=True)
-        return vtlist[0][3]
+        return [vtlist[i][3] for i in range(numOfBestTopics)]
+
+    def fBestTopic2(lastTopics,numOfBestTopics):
+        tmpV = {i:[0,0,0] for i in range(numTopics)}
+        for winfo in lastTopics:
+            for t in winfo:
+                tmpV[t[0]][0] += 1
+                tmpV[t[0]][1] += t[1]
+                if t[3] == True:
+                    tmpV[t[0]][2] += 1
+        return fBestTopic(tmpV,numOfBestTopics)
 
     test = open(testFile,'r',encoding='utf-8')
     vtopics = {i:[0,0,0] for i in range(numTopics)}
@@ -281,24 +291,54 @@ def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLas
                     pprev = prev
                     prev = word
                 else:
-                    lstBy2,lstBy3 = ACM.suggestTopTopic(pprev,prev,fBestTopic(vtopics),numOfElemList2)
+                    lstBy2,lstBy3 = ACM.suggestTopTopic(pprev,prev,fBestTopic(vtopics,numOfBestTopics),numOfElemList2)
                     a = topicFunc(lstBy2,lstBy3,numOfElemList1)
                     if a is not None:
                         if word in a:
                             succ+=1
                         numOfChecks+=1
+                    lstBy2,lstBy3 = ACM.suggestTopTopic(pprev,prev,fBestTopic2(lastTopics,numOfBestTopics),numOfElemList2)
+                    a = topicFunc(lstBy2,lstBy3,numOfElemList1)
+                    if a is not None:
+                        if word in a:
+                            succ2+=1
+                        numOfChecks2+=1
                     i=num
                     pprev=prev
                     prev=word
-                wordInfo = ACM.dict.find_one({"word":prev})["info"]
-                if wordInfo is not None:
-                    for a in wordInfo:
-                        vtopics[a[0]][0]+=1
-                        vtopics[a[0]][1]+=a[1]
-                        if a[2] is True:
-                            vtopics[a[0]][2]+=1
+                wordInDict = ACM.dict.find_one({"word":prev})
+                if wordInDict is not None:
+                    wordInfo=wordInDict["info"]
+                    if wordInfo is not None:
+                        for a in wordInfo:
+                            vtopics[a[0]][0]+=1
+                            vtopics[a[0]][1]+=a[1]
+                            if a[3] is True:
+                                vtopics[a[0]][2]+=1
+                        if len(lastTopics) < numLastTopics:
+                            lastTopics +=[wordInfo]
+                        else:
+                            lastTopics.pop(0)
+                            lastTopics+=[wordInfo]
     test.close()
-    return
+    return succ/numOfChecks, succ2/numOfChecks2
+
+def topicTest(ACM,inputDir,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics,numOfBestTopics):
+        sum1 = sum2 = 0
+        numOfFiles = 0
+        size = len(os.listdir(inputDir))
+        i=1
+        if os.path.isdir(inputDir):
+            for f in sorted(os.listdir(inputDir)):
+                x1,x2 = simTopicTest(ACM,inputDir + '/' + f,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics,numOfBestTopics)
+                sys.stdout.flush()
+                print(str(int((i*100)/size))+"%",end="\r") 
+                i+=1  
+                sum1+=x1
+                sum2+=x2
+                numOfFiles+=1
+            return sum1/numOfFiles, sum2/numOfFiles
+        return "input Error"
 
 
 # Input for the testing::
@@ -306,7 +346,7 @@ def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLas
 #   2 - the directory we want to test
 #   3 - the test type
 #   4 - num of checks
-#   5 - num of elements to choose from table
+
 def main():
     #testing 1 2 3
     if len(sys.argv) > 6:
@@ -328,9 +368,24 @@ def main():
         (x,y) = probTest(ACM,Indir,numOfChecks)
         print (round(x*100,2),round(y*100,2))
     if action == 'isimple':
+        #   5 - num of elements to choose from table
         numElem = int(sys.argv[5])
         x = impSimTest(ACM,Indir,numOfChecks,numElem)
         print (round(x*100,2))
+    if action == 'sTopic':
+        (x,y) = topicTest(ACM,Indir,numOfChecks,15,5,10,10,3)
+        print (round(x*100,2),round(y*100,2))
+    if action == 'best100':
+        i=0
+        with open('ilaiOut.txt','w') as outfile:
+            for a in ACM.dict.find().sort([("grade",-1)]):
+                if i < 100:
+                    outfile.write(str(a)+'\n')
+                    i+=1
+                else:
+                    break
+
+
 
 if __name__ == '__main__':
     main()
