@@ -53,16 +53,16 @@ def simpleTest(ACM,inputDir,num):
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
 
-def impSimTestSingle(ACM, testFile, num, numOfElemList):
+def impSimTestSingle(ACM, testFile, num, numOfElemList=5):
         test = open(testFile,'r',encoding='utf-8')
         numOfChecks = succ = 0
         i = num
-        def alphaFunc(lst1,lst2):
+        def alphaFunc(lst1,lst2,numOfElemList):
             if lst1 is None:
                 return None
             if lst2 is None:
                 lst1.sort()
-                return [lst1[i][1] for i in range(len(lst1)) if i <= 4]
+                return [lst1[i][1] for i in range(len(lst1)) if i <= (numOfElemList-1)]
             resLst = []
             for a in lst1:
                 for b in lst2:
@@ -79,7 +79,7 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList):
                 if not flag:
                     resLst.append(b)
             resLst.sort(reverse=True)
-            return [lst1[i][1] for i in range(len(lst1)) if i <= 4]
+            return [resLst[i][1] for i in range(len(resLst)) if i <= (numOfElemList-1)]
 
         for line in test:
             pprev = prev = None
@@ -94,7 +94,7 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList):
                     prev = word
                 else:
                     lstBy2,lstBy3 = ACM.suggest2(pprev,prev,numOfElemList)
-                    a = alphaFunc(lstBy2,lstBy3)
+                    a = alphaFunc(lstBy2,lstBy3,numOfElemList)
                     if a is not None:
                         if word in a:
                             succ+=1
@@ -121,6 +121,51 @@ def impSimTest(ACM,inputDir,num,x):
             return sum/numOfFiles
         return "input Error"
     
+def impProbTestSingle(ACM, testFile, num, numOfElemList):
+        test = open(testFile,'r',encoding='utf-8')
+        biScore = triScore = 0.0
+        biChecks = triChecks = 0
+        i = num
+        def smooth(ACM,pprev,prev,word):
+            if pprev is None:
+                res = ACM.dictBy2.find_one({"first":prev,"second":word})
+                if res is None:
+                        res = 1
+                else:
+                   res = ACM.dictBy2.find_one({"first":prev,"second":word})["grade"]+1
+            else:
+                res = ACM.dictBy3.find_one({"first":pprev,"second":prev,"third":word})
+                if res is None:
+                    res = 1
+                else:
+                    res = ACM.dictBy3.find_one({"first":pprev,"second":prev,"third":word})["grade"]+1
+            return res
+
+        for line in test:
+            pprev = prev = None
+            for word in line.split():
+                if re.match("[.,\"\(\);']",word):
+                    pprev = prev = word = None
+                    i = num
+                    continue
+                if i != 0:
+                    i -= 1
+                    pprev = prev
+                    prev = word
+                else:
+                    lstBy2,lstBy3 = ACM.suggest2(pprev,prev,numOfElemList)
+                    if a is not None:
+                        biScore += (smooth(ACM,None,prev,word)/(smooth(ACM,None,prev,a)))
+                        biChecks += 1
+                    if b is not None:
+                        triScore += (smooth(ACM,pprev,prev,word))/(smooth(ACM,pprev,prev,b))
+                        triChecks += 1
+                    i=num
+                    pprev=prev
+                    prev=word
+        test.close()
+        return biScore/biChecks, triScore/triChecks
+
 def probTestSingle(ACM, testFile, num):    
         test = open(testFile,'r',encoding='utf-8')
         biScore = triScore = 0.0
@@ -182,6 +227,78 @@ def probTest(ACM,inputDir,num):
                 numOfFiles+=1
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
+
+def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics):
+    def topicFunc(lst1,lst2,numOfElemList):
+            if lst1 is None:
+                if lst2 is None:
+                    return None
+                else:
+                    return [lst2[i][4] for i in range(len(lst2)) if i <= (numOfElemList-1)]
+            if lst2 is None:
+                return [lst1[i][4] for i in range(len(lst1)) if i <= (numOfElemList-1)]
+            resLst = []
+            for a in lst1:
+                for b in lst2:
+                    if a[4]==b[4]:
+                        a[3]+=b[3]
+                        break
+                resLst.append(a)
+            for b in lst2:
+                flag = False
+                for a in resLst:
+                    if a[4] == b[4]:
+                        flag = True
+                        break
+                if not flag:
+                    resLst.append(b)
+            resLst.sort(reverse=True)
+            return [resLst[i][1] for i in range(len(resLst)) if i <= (numOfElemList-1)]
+
+    def fBestTopic(vtopics):
+        vtlist = []
+        for t in vtopics:
+            tmp = vtopics[t] + [t]
+            vtlist += tmp
+        vtlist.sort(reverse=True)
+        return vtlist[0][3]
+
+    test = open(testFile,'r',encoding='utf-8')
+    vtopics = {i:[0,0,0] for i in range(numTopics)}
+    lastTopics = []
+    numInLastTopics = 0
+    i = num
+    numOfChecks = succ = numOfChecks2 = succ2 = 0
+    for line in test:
+        pprev = prev = None
+        for word in line.split():
+                if re.match("[.,\"\(\);']",word):
+                    pprev = prev = word = None
+                    i = num
+                    continue
+                if i!= 0:
+                    i-=1
+                    pprev = prev
+                    prev = word
+                else:
+                    lstBy2,lstBy3 = ACM.suggestTopTopic(pprev,prev,fBestTopic(vtopics),numOfElemList2)
+                    a = topicFunc(lstBy2,lstBy3,numOfElemList1)
+                    if a is not None:
+                        if word in a:
+                            succ+=1
+                        numOfChecks+=1
+                    i=num
+                    pprev=prev
+                    prev=word
+                wordInfo = ACM.dict.find_one({"word":prev})["info"]
+                if wordInfo is not None:
+                    for a in wordInfo:
+                        vtopics[a[0]][0]+=1
+                        vtopics[a[0]][1]+=a[1]
+                        if a[2] is True:
+                            vtopics[a[0]][2]+=1
+    test.close()
+    return
 
 
 # Input for the testing::

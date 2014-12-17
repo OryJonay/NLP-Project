@@ -27,6 +27,8 @@ def main():
             j+=1
         ACM = AutoCompModule('DB_'+str((i+1)))
         ACM.learn(inDir)
+        #Mallet
+        #ACM.addMalletInfoToDB()
         print("iter num:"+str(i+1)+" checking every: "+str(numOfChecks))
         (s1,s2) = simpleTest(ACM,'Test',numOfChecks)
         (p1,p2) = probTest(ACM,'Test',numOfChecks)

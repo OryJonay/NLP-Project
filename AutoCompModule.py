@@ -127,6 +127,46 @@ class AutoCompModule:
             else:
                 return res1,[[a["grade"],a["third"]] for a in lstBy3]
 
+    def suggestTopTopic(self,pprev=None,prev=None,bestTopic=0,x=5):
+        if prev is None:
+            return None,None
+        i=0
+        lst=[]
+        for a in self.dictBy2.find({"first": prev}).sort([('grade',-1),('second',1)]):
+            if i<x:
+               for b in self.dict.find_one({"word":a["second"]})["info"]:
+                   if b[0] == bestTopic:
+                       lst += [[b[1], b[2], b[3], a["grade"], a["second"], b[0]]]
+                       i+=1
+                       break        
+            else:
+                break
+        if lst is []:
+            lst = None
+        else:
+            lst.sort(reverse=True)
+        if pprev is None:
+            return lst,None
+        else:
+            i=0
+            lst2=[]
+            for a in self.dictBy3.find({"first": pprev, "second": prec}).sort([('grade',-1),('third', 1)]):
+                if i<x:
+                    for b in self.dict.find_one({"word":a["third"]})["info"]:
+                        if b[0] == bestTopic:
+                            lst += [[b[1], b[2], b[3], a["grade"], a["third"], b[0]]]
+                            i+=1
+                            break
+                else:
+                    break
+            if lst2 is []:
+                return lst,None
+            lst2.sort(reverse=True)
+            return lst,lst2
+
+
+
+
 def malletGetWordTopicCounts(wtcfile):
     with open(wtcfile,'r', encoding='utf-8') as input:
         wordDict = {}
