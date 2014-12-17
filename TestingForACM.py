@@ -1,6 +1,8 @@
 import AutoCompModule
 from AutoCompModule import AutoCompModule
 import pymongo, os, sys, re
+import ACM_LDA
+from ACM_LDA import ACM_LDA
 
 # Testing for the AutoCompModule
 
@@ -234,26 +236,26 @@ def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLas
                 if lst2 is None:
                     return None
                 else:
-                    return [lst2[i][3] for i in range(len(lst2)) if i <= (numOfElemList-1)]
+                    return [lst2[i][4] for i in range(len(lst2)) if i <= (numOfElemList-1)]
             if lst2 is None:
-                return [lst1[i][3] for i in range(len(lst1)) if i <= (numOfElemList-1)]
+                return [lst1[i][4] for i in range(len(lst1)) if i <= (numOfElemList-1)]
             resLst = []
             for a in lst1:
                 for b in lst2:
-                    if a[3]==b[3]:
-                        a[2]+=b[2]
+                    if a[4]==b[4]:
+                        a[3]+=b[3]
                         break
                 resLst.append(a)
             for b in lst2:
                 flag = False
                 for a in resLst:
-                    if a[3] == b[3]:
+                    if a[4] == b[4]:
                         flag = True
                         break
                 if not flag:
                     resLst.append(b)
             resLst.sort(reverse=True)
-            return [resLst[i][3] for i in range(len(resLst)) if i <= (numOfElemList-1)]
+            return [resLst[i][4] for i in range(len(resLst)) if i <= (numOfElemList-1)]
 
     def fBestTopic(vtopics,numOfBestTopics):
         vtlist = []
@@ -373,7 +375,8 @@ def main():
         x = impSimTest(ACM,Indir,numOfChecks,numElem)
         print (round(x*100,2))
     if action == 'sTopic':
-        (x,y) = topicTest(ACM,Indir,numOfChecks,15,5,10,10,3)
+        ACM = ACM_LDA(DBname)
+        (x,y) = topicTest(ACM,Indir,numOfChecks,15,5,7,15,3)
         print (round(x*100,2),round(y*100,2))
     if action == 'best100':
         i=0

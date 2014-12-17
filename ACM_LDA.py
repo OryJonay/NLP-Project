@@ -4,6 +4,7 @@ from AutoCompModule import AutoCompModule
 
 
 weight3 = 15
+
 class ACM_LDA(AutoCompModule):
     def __init__(self, DBName):
         return super().__init__(DBName)
@@ -18,9 +19,14 @@ class ACM_LDA(AutoCompModule):
                     word = tmp[0]
                     tmp.remove(tmp[0])
                     wordData = []
+                    currWordInDict = self.dict.find_one({"word":word})
+                    if currWordInDict is not None:
+                        currGrade = currWordInDict["grade"]
+                    else:
+                        currGrade = 1
                     for tc in tmp:
                         topicCount = tc.split(':')
-                        wordData += [[int(topicCount[0]), int(topicCount[1]), 0.0, False]]
+                        wordData += [[int(topicCount[0]), int(topicCount[1])/currGrade, 0.0, False]]
                     wordDict[word] = wordData
                 return wordDict
 
@@ -65,12 +71,13 @@ class ACM_LDA(AutoCompModule):
                 c=self.dict.find_one({"word":a["second"]})
                 if c["info"] is not None:
                        B=c["info"]
-                       btCount = [0,0]
+                       btCount = [0,0,0]
                        for b in B:
                            if b[0] in bestTopic:
                                btCount[0]+=1
+                               btCount[1]+=b[1]
                                if b[3] == True:
-                                    btCount[1]+=1
+                                    btCount[2]+=1
                        if btCount[0] > 0:
                            lst += [btCount+[a["grade"], a["second"]]]
                            i+=1        
@@ -90,12 +97,13 @@ class ACM_LDA(AutoCompModule):
                     c=self.dict.find_one({"word":a["third"]})
                     if c["info"] is not None:
                        B=c["info"]
-                       btCount = [0,0]
+                       btCount = [0,0,0]
                        for b in B:
                            if b[0] in bestTopic:
                                btCount[0]+=1
+                               btCount[1]+=b[1]
                                if b[3] == True:
-                                    btCount[1]+=1
+                                    btCount[2]+=1
                        if btCount[0] > 0:
                            lst2 += [btCount+[weight3*a["grade"], a["third"]]]
                            i+=1
@@ -107,4 +115,9 @@ class ACM_LDA(AutoCompModule):
             return lst,lst2
 
 
+def main():
+    ACM = ACM_LDA('DB_Mall')
+    ACM.addMalletInfoToDB('MalletData\Data-wtcf.txt', 'MalletData\Data-twwf.txt', 'MalletData\Data-keys.txt')
 
+if __name__=='__main__':
+    main()

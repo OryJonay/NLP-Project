@@ -120,9 +120,3 @@ class AutoCompModule:
                 return res1,[[weight3*a["grade"],a["third"]] for a in lstBy3]
 
   
-def main():
-    ACM = AutoCompModule('DB_Mall')
-    ACM.addMalletInfoToDB('MalletData\Data-wtcf.txt', 'MalletData\Data-twwf.txt', 'MalletData\Data-keys.txt')
-
-if __name__=='__main__':
-    main()
