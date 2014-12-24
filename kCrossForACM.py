@@ -1,6 +1,7 @@
 import shutil,os,sys,TestingForACM
 from TestingForACM import *
 from pymongo import Connection
+from ACM_LDA import ACM_LDA as LDA
 
 connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
 
@@ -10,9 +11,7 @@ connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
 # 3- num of checks
 # 4- num of elements to compare
 
-def kCrossFix(data,k,checks,elements=5,DBexists=False):
-    inDir = sys.argv[1]
-    k = int(sys.argv[2]) 
+def kCrossFix(data,k,checks,elements=5,DBexists=False): 
     numOfChecks = int(checks)
     numOfElem = int(elements)
 
@@ -57,6 +56,23 @@ PB='prob_bigram'
 PT='prob_trigram'
 IS='improv_simple'
 
+def checkLDA(inDir,k):
+    filesAmount = len(os.listdir(inDir))
+    groupSize=int(filesAmount/k)
+    i=0
+    while i < k:
+        j=1
+        while j <= groupSize:
+            filenum = (groupSize*i) + j
+            shutil.move(inDir+'/'+str(filenum)+'.txt','Test')
+            j+=1
+        lda = LDA('db'+str((i+1)))
+        lda.learn(inDir)
+        i+=1
+        for file in os.listdir('Test'):
+            shutil.move('Test/'+file,inDir)
+    print ("Done learning")
+
 
 def runTest(data,k,maxChecks=5,elements=5):
     tests = [SB,ST,PB,PT,IS]
@@ -85,7 +101,10 @@ def runTest(data,k,maxChecks=5,elements=5):
     plt.savefig(str(k)+'Cross.png')
 
 def main():
-    runTest(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+    if sys.argv[1] == 'LDA':
+        checkLDA(sys.argv[2],int(sys.argv[3]))
+    else:
+        runTest(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
                                                                             
     
 

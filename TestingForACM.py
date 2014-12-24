@@ -36,6 +36,8 @@ def simpleTestSingle(ACM, testFile, num):
                     pprev=prev
                     prev=word
         test.close()
+        numOfChecks1 = numOfChecks1 if numOfChecks1 > 0 else 1
+        numOfChecks2 = numOfChecks2 if numOfChecks2 > 0 else 1 
         return succ1/numOfChecks1, succ2/numOfChecks2
 
 def simpleTest(ACM,inputDir,num):
@@ -105,6 +107,7 @@ def impSimTestSingle(ACM, testFile, num, numOfElemList=5):
                     pprev=prev
                     prev=word
         test.close()
+        numOfChecks = numOfChecks if numOfChecks > 0 else 1
         return succ/numOfChecks
 
 def impSimTest(ACM,inputDir,num,x):
@@ -166,6 +169,8 @@ def impProbTestSingle(ACM, testFile, num, numOfElemList):
                     pprev=prev
                     prev=word
         test.close()
+        biChecks = biChecks if biChecks >0 else 1
+        triChecks = triChecks if triChecks >0 else 1
         return biScore/biChecks, triScore/triChecks
 
 def probTestSingle(ACM, testFile, num):    
@@ -211,6 +216,8 @@ def probTestSingle(ACM, testFile, num):
                     pprev=prev
                     prev=word
         test.close()
+        biChecks = biChecks if biChecks >0 else 1
+        triChecks = triChecks if triChecks >0 else 1
         return biScore/biChecks, triScore/triChecks
 
 def probTest(ACM,inputDir,num):

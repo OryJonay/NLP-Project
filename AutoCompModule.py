@@ -1,5 +1,6 @@
 import pymongo, os, sys, re
 from pymongo import Connection
+from mongoHelper import Helper
 
 weight3=50
 
@@ -12,41 +13,37 @@ class AutoCompModule:
     #   dictBy2 - holds the amount of (x,y) appearances in the learned text
     #   dictBy2 - holds the amount of (x,y,z) appearances in the learned text
     def __init__(self,DBName):
-        self.dict = Connection()[DBName]['dict']
-        self.dictBy2 = Connection()[DBName]['dictBy2']
-        self.dictBy3 = Connection()[DBName]['dictBy3']
-    
+        connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
+        self.conn = Connection(connect+DBName)
+        self.dict = self.conn[DBName]['dict']
+        self.dictBy2 = self.conn[DBName]['dictBy2']
+        self.dictBy3 = self.conn[DBName]['dictBy3']
+        self.name = DBName
+        self.helper = Helper()
+    # Dropping the database to delete all data
+    def dropDicts(self,DBName):
+        self.conn.drop_database(DBName)
     
     # Method to learn from a single file
     # For each file the method detects all the information mentioned above
     # Definitions :
     #   pprev,prev,word are the three last seen words (where word is the current word) 
     def learnSingle(self,fileName):
-        input = open(fileName, encoding='utf-8')
-        for line in input:
-            pprev = prev = None
-            for word in line.split():
-                if re.match("[.,\"\(\);:%?!-@#$^&*\{\[\}\]\']",word):
-                    pprev = prev = word = None
-                    continue
-                if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
-                    self.dict.update({"word": word},{ "$inc": {"grade":1}})
-                else:
-                    self.dict.insert({"word": word, "grade":1, "info": None})
-            
-                if prev!=None:
-                    if self.dictBy2.find_one({"first": prev,"second": word,"grade": { "$exists": True}}) != None:
-                        self.dictBy2.update({"first": prev,"second": word},{ "$inc": {"grade":1}})
-                    else:
-                        self.dictBy2.insert({"first": prev,"second": word,"grade":1})
-                    if pprev!=None:
-                        if self.dictBy3.find_one({"first": pprev,"second": prev,"third": word,"grade": { "$exists": True}}) != None:
-                                  self.dictBy3.update({"first": pprev,"second": prev,"third": word},{ "$inc": {"grade":1}})
-                        else:
-                            self.dictBy3.insert({"first": pprev,"second": prev,"third": word,"grade":1})
-                    pprev=prev
-                prev = word
-        input.close()
+        h = self.helper
+        with open(fileName,encoding='utf-8') as input:
+            for line in input:
+                pprev = prev = None
+                for word in line.split():
+                    if re.match("[.,\"\(\);:%?!-@#$^&*\{\[\}\]\']",word):
+                        pprev = prev = word = None
+                        continue
+                    h.insert(h.dict1,word)
+                    if prev!=None:
+                        h.insert(h.dict2,(prev,word))
+                        if pprev!=None:
+                            h.insert(h.dict3,(pprev,prev,word))
+                        pprev=prev
+                    prev = word
 
 
     # Method to learn from multiple files
@@ -63,6 +60,10 @@ class AutoCompModule:
             print ("SUCCESS LEARNING FINISH")
         else:
             print ("ERROR!!")
+        self.helper.dictsToDbList()
+        self.dict.insert(self.helper.list1)
+        self.dictBy2.insert(self.helper.list2)
+        self.dictBy3.insert(self.helper.list3)
 
 
     # Method that suggests the next word

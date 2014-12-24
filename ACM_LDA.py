@@ -1,4 +1,4 @@
-import pymongo, os, sys, re
+import pymongo, os, sys, re, subprocess
 from pymongo import Connection
 from AutoCompModule import AutoCompModule
 
@@ -8,7 +8,26 @@ weight3 = 15
 class ACM_LDA(AutoCompModule):
     def __init__(self, DBName):
         return super().__init__(DBName)
-
+    def learn(self,inputDir,numTopics='15'):
+        size = len(os.listdir(inputDir))
+        i=1
+        if os.path.isdir(inputDir):
+            for f in sorted(os.listdir(inputDir)):
+                self.learnSingle(inputDir + '/' + f)
+                sys.stdout.flush()
+                print(str(int((i*100)/size))+"%",end="\r") 
+                i+=1   
+            print ("SUCCESS LEARNING FINISH")
+        else:
+            print ("ERROR!!")
+        DBName = self.name
+        subprocess.call(["mallet/bin/mallet","import-dir","--input",inputDir,"--output",DBName+".mallet","--keep-sequence","--token-regex","[\p{L}\p{P}]*\p{L}"])
+        subprocess.call(["mallet/bin/mallet","train-topics","--input",DBName+".mallet","--output-topic-keys",DBName+"-keys.txt","--topic-word-weights-file",DBName+"-twwf.txt","--word-topic-counts-file",DBName+"-wtcf.txt","--num-topics",numTopics,"--optimize-interval","20"])
+        self.addMalletInfoToDB(DBName+"-wtcf.txt", DBName+"-twwf.txt", DBName+"-keys.txt")
+        self.helper.dictsToDbList()
+        self.dict.insert(self.helper.list1)
+        self.dictBy2.insert(self.helper.list2)
+        self.dictBy3.insert(self.helper.list3)
     def addMalletInfoToDB(self, wtcfile, twwfile, keysfile):
         def malletGetWordTopicCounts(wtcfile):
             with open(wtcfile,'r', encoding='utf-8') as input:
@@ -57,9 +76,11 @@ class ACM_LDA(AutoCompModule):
             return wordDict
 
         wordDict = malletGetWordsAndData(wtcfile, twwfile, keysfile)
-        for word in wordDict:
-            if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
-                self.dict.update({"word": word},{"$set":{"info": wordDict[word]}})
+        h = self.helper
+        h.insertMalletInfo(wordDict)
+        #for word in wordDict:
+           # if self.dict.find_one({"word": word,"grade": { "$exists": True}}) != None:
+            #    self.dict.update({"word": word},{"$set":{"info": wordDict[word]}})
 
     def suggestTopTopic(self,pprev=None,prev=None,bestTopic=[],x=5):
         if prev is None:
