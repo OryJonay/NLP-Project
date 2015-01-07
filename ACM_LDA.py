@@ -1,7 +1,7 @@
-import pymongo, os, sys, re, subprocess
+import pymongo, os, sys, re, subprocess , shutil
 from pymongo import Connection
 from AutoCompModule import AutoCompModule
-
+import numpy as np
 
 weight3 = 15
 
@@ -21,13 +21,17 @@ class ACM_LDA(AutoCompModule):
         else:
             print ("ERROR!!")
         DBName = self.name
-        subprocess.call(["mallet/bin/mallet","import-dir","--input",inputDir,"--output",DBName+".mallet","--keep-sequence","--token-regex","[\p{L}\p{P}]*\p{L}"])
-        subprocess.call(["mallet/bin/mallet","train-topics","--input",DBName+".mallet",'--inferencer-filename',DBName+'.inf',"--output-topic-keys",DBName+"-keys.txt","--topic-word-weights-file",DBName+"-twwf.txt","--word-topic-counts-file",DBName+"-wtcf.txt","--num-topics",numTopics,"--optimize-interval","20"])
+        with open('trash.txt','w') as trashF:
+            tv = subprocess.call(["mallet/bin/mallet","import-dir","--input",inputDir,"--output",DBName+".mallet","--keep-sequence","--token-regex","[\p{L}\p{P}]*\p{L}"],stdout=trashF,stderr=trashF)
+            tv = subprocess.call(["mallet/bin/mallet","train-topics","--input",DBName+".mallet",'--inferencer-filename',DBName+'.inf',"--output-topic-keys",DBName+"-keys.txt","--topic-word-weights-file",DBName+"-twwf.txt","--word-topic-counts-file",DBName+"-wtcf.txt","--num-topics",numTopics,"--optimize-interval","20"],stdout=trashF,stderr=trashF)
+        os.remove('trash.txt')
         self.addMalletInfoToDB(DBName+"-wtcf.txt", DBName+"-twwf.txt", DBName+"-keys.txt")
         self.helper.dictsToDbList()
         self.dict.insert(self.helper.list1)
         self.dictBy2.insert(self.helper.list2)
         self.dictBy3.insert(self.helper.list3)
+        print ("SUCCESS MALLET FINISH")
+        
     def addMalletInfoToDB(self, wtcfile, twwfile, keysfile):
         def malletGetWordTopicCounts(wtcfile):
             with open(wtcfile,'r', encoding='utf-8') as input:
@@ -135,7 +139,49 @@ class ACM_LDA(AutoCompModule):
             lst2.sort(reverse=True)
             return lst,lst2
 
+    def suggest(self,pprev=None,prev=None,buff=[],x=5):
+        if len(buff) < 10:
+            return None
+        a,b = self.suggest2(pprev,prev,x)
+        if a==None and b==None:
+            return None
+        c = []
+        if b==None:
+            c = a
+        else:
+            c = a+b
+        c = [k for k in set([i[1] for i in c])]
+        sBuff = ' '.join(buff)
+        os.mkdir("tmp")
+        with open("tmp/temp0.txt",'w',encoding = 'utf=8') as base:
+            base.write(sBuff)
+        i=1
+        for j in c:
+            s= sBuff+' '+j
+            with open("tmp/temp"+str(i)+".txt",'w',encoding='utf-8') as temp_file:
+                temp_file.write(s)
+            i += 1
+        with open('tmp/dmpFile.txt','w') as dmp:
+            tv = subprocess.call(["mallet/bin/mallet","import-dir","--input","tmp","--output","tmp/tmp.mallet","--keep-sequence","--token-regex","[\p{L}\p{P}]*\p{L}"],stdout=dmp,stderr=dmp)
+            tv = subprocess.call(["mallet/bin/mallet","infer-topics","--inferencer",str(self.name)+".inf","--input","tmp/tmp.mallet","--output-doc-topics","tmp/tmp-doc.txt"],stdout=dmp,stderr=dmp)
+        d = {}
+        with open("tmp/tmp-doc.txt",'r',encoding='utf-8') as results:
+            for line in results:
+                if len(line.split()) == 5:
+                    continue
+                raw_data = line.split()[2:]
+                td = [(raw_data[i],raw_data[i+1]) for i in range(0,len(raw_data),2)]
+                td.sort()
+                d[int(line.split()[0])] = np.array([float(tup[1]) for tup in td])  
+        for item in range(1,len(d)):
+            d[item] = sum(abs(d[0] - d[item]))
 
+        r = [(d[i+1],c[i]) for i in range(len(c))]
+        r.sort()       
+        shutil.rmtree("tmp") 
+        return [w[1] for w in r]
+            
+    
 def main():
     ACM = ACM_LDA('DB_Mall')
     ACM.addMalletInfoToDB('MalletData\Data-wtcf.txt', 'MalletData\Data-twwf.txt', 'MalletData\Data-keys.txt')

@@ -126,54 +126,6 @@ def impSimTest(ACM,inputDir,num,x):
             return sum/numOfFiles
         return "input Error"
     
-def impProbTestSingle(ACM, testFile, num, numOfElemList):
-        
-    with open(testFile,'r',encoding='utf-8') as test:
-        biScore = triScore = 0.0
-        biChecks = triChecks = 0
-        i = num
-        def smooth(ACM,pprev,prev,word):
-            if pprev is None:
-                res = ACM.dictBy2.find_one({"first":prev,"second":word})
-                if res is None:
-                        res = 1
-                else:
-                   res = ACM.dictBy2.find_one({"first":prev,"second":word})["grade"]+1
-            else:
-                res = ACM.dictBy3.find_one({"first":pprev,"second":prev,"third":word})
-                if res is None:
-                    res = 1
-                else:
-                    res = ACM.dictBy3.find_one({"first":pprev,"second":prev,"third":word})["grade"]+1
-            return res
-
-        for line in test:
-            pprev = prev = None
-            for word in line.split():
-                if re.match("[.,\"\(\);']",word):
-                    pprev = prev = word = None
-                    i = num
-                    continue
-                if i != 0:
-                    i -= 1
-                    pprev = prev
-                    prev = word
-                else:
-                    lstBy2,lstBy3 = ACM.suggest2(pprev,prev,numOfElemList)
-                    if a is not None:
-                        biScore += (smooth(ACM,None,prev,word)/(smooth(ACM,None,prev,a)))
-                        biChecks += 1
-                    if b is not None:
-                        triScore += (smooth(ACM,pprev,prev,word))/(smooth(ACM,pprev,prev,b))
-                        triChecks += 1
-                    i=num
-                    pprev=prev
-                    prev=word
-        
-        biChecks = biChecks if biChecks >0 else 1
-        triChecks = triChecks if triChecks >0 else 1
-        return biScore/biChecks, triScore/triChecks
-
 def probTestSingle(ACM, testFile, num):    
         
     with open(testFile,'r',encoding='utf-8') as test:
@@ -333,6 +285,8 @@ def simTopicTest(ACM,testFile,num,numTopics,numOfElemList1,numOfElemList2,numLas
                                 lastTopics+=[wordInfo]
     return succ/numOfChecks, succ2/numOfChecks2
 
+ 
+
 def topicTest(ACM,inputDir,num,numTopics,numOfElemList1,numOfElemList2,numLastTopics,numOfBestTopics):
         sum1 = sum2 = 0
         numOfFiles = 0
@@ -350,6 +304,52 @@ def topicTest(ACM,inputDir,num,numTopics,numOfElemList1,numOfElemList2,numLastTo
             return sum1/numOfFiles, sum2/numOfFiles
         return "input Error"
 
+def diffTopicTest(ACM,testFile,num,numElmCut,numElmX,maxBuff=float('inf')):
+    with open(testFile,'r',encoding='utf-8') as test:
+        numOfChecks1 = numOfChecks2 = succ1 = succ2 = 0
+        i = num
+        buff = []
+        for line in test:
+            pprev = prev = None
+            for word in line.split():
+                buff += [word]
+                if len(buff) > maxBuff:
+                    buff.pop(0)
+                    
+                if re.match("[.,\"\(\);']",word):
+                    pprev = prev = word = None
+                    i = num
+                    continue
+                if i!= 0:
+                    i-=1
+                    pprev = prev
+                    prev = word
+                else:
+                    a = ACM.suggest(pprev,prev,buff,numElmX)
+                    if a is not None:
+                        if word in a[:numElmCut]:
+                            succ1+=1
+                        numOfChecks1+=1
+                    i=num
+                    pprev=prev
+                    prev=word
+        numOfChecks1 = numOfChecks1 if numOfChecks1 > 0 else 1 
+        return succ1/numOfChecks1
+
+def diffTest(ACM,inputDir,num,numElmCut,numElmX,maxBuff=float('inf')):
+    print ('Start testing')
+    sum1 =  0
+    size = len(os.listdir(inputDir))
+    i=1
+    if os.path.isdir(inputDir):
+        for f in sorted(os.listdir(inputDir)):
+            x1 = diffTopicTest(ACM,inputDir + '/' + f,num,numElmCut,numElmX,maxBuff)
+            sys.stdout.flush()
+            print(str(int((i*100)/size))+"%",end="\r") 
+            i+=1
+            sum1+=x1
+        return sum1/size
+    return "input Error"
 
 # Input for the testing::
 #   1 - the database name we want to check
@@ -367,7 +367,8 @@ def main():
     if action != 'learn':
         numOfChecks = int(sys.argv[4])
 
-    ACM = AutoCompModule(DBname)
+    ACM = ACM_LDA(DBname)
+    
     
     if action == 'learn':
         ACM.learn(Indir)
@@ -379,6 +380,8 @@ def main():
         print (round(x*100,2),round(y*100,2))
     if action == 'isimple':
         #   5 - num of elements to choose from table
+        ACM.dropDicts(DBname)
+        ACM.learn('corpus')
         numElem = int(sys.argv[5])
         x = impSimTest(ACM,Indir,numOfChecks,numElem)
         print (round(x*100,2))
@@ -395,6 +398,11 @@ def main():
                     i+=1
                 else:
                     break
+    if action == 'diff':
+        ACM.dropDicts(DBname)
+        ACM.learn(Indir)
+        print ("done learning. starting test.")
+        print (diffTest(ACM, Indir+'test', numOfChecks, 5, 5))
 
 
 
