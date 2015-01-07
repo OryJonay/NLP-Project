@@ -23,6 +23,8 @@ class Helper():
                 dict[args] = 1 
 
     def dictsToDbList(self):
+        if len(self.infoDict) == 0:
+            self.infoDict = {key:[] for key in self.dict1}
         self.list1 = [{"word":key,"grade":self.dict1[key], "info":self.infoDict[key]} for key in self.dict1]
         self.list2 = [{"prev":key[0],"word":key[1],"grade":self.dict2[key]} for key in self.dict2]
         self.list3 = [{"pprev":key[0],"prev":key[1],"word":key[2],"grade":self.dict3[key]} for key in self.dict3]

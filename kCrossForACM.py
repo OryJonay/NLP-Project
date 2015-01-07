@@ -11,26 +11,28 @@ connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
 # 3- num of checks
 # 4- num of elements to compare
 
-def kCrossFix(data,k,checks,elements=5,DBexists=False): 
+def kCrossFix(data,k,checks,elements=5,DBexists=False,type='ACM'): 
     numOfChecks = int(checks)
     numOfElem = int(elements)
 
-    filesAmount = len(os.listdir(inDir))
+    filesAmount = len(os.listdir(data))
     groupSize=int(filesAmount/k)
     i=0
     totRes = [0,0,0,0,0]
+    if not DBexists:
+        print ("No DB given")
+        learnAll(data,k,type)
+        DBexists = True
     while i < k:
         j=1
         while j <= groupSize:
             filenum = (groupSize*i) + j
-            shutil.move(inDir+'/'+str(filenum)+'.txt','Test')
+            shutil.move(data+'/'+str(filenum)+'.txt','Test')
             j+=1
-        ACM = AutoCompModule('db'+str((i+1)))
-        if not DBexists:
-            ACM.dropDicts('db'+str((i+1)))
-            ACM.learn(inDir)
-        #Mallet
-        #ACM.addMalletInfoToDB()
+        if type == 'LDA':
+            ACM = LDA('db'+str(i+1))
+        else:
+            ACM = AutoCompModule('db'+str((i+1)))
         print("iter num:"+str(i+1)+" checking every: "+str(numOfChecks))
         (s1,s2) = simpleTest(ACM,'Test',numOfChecks)
         (p1,p2) = probTest(ACM,'Test',numOfChecks)
@@ -45,16 +47,38 @@ def kCrossFix(data,k,checks,elements=5,DBexists=False):
         totRes[3] += round(p2*100,2)
         totRes[4] += round(imp*100,2)
         for file in os.listdir('Test'):
-            shutil.move('Test/'+file,inDir)
-    for a in totRes:
-        a = round(a/k,2)
-    return totRes
+            shutil.move('Test/'+file,data)
+    return [round(float(a)/k,2) for a in totRes]
 
 SB='simple_bigram'
 ST='simple_trigram'
 PB='prob_bigram'
 PT='prob_trigram'
 IS='improv_simple'
+
+def learnAll(inDir,k,type):
+    filesAmount = len(os.listdir(inDir))
+    groupSize=int(filesAmount/k)
+    i=0
+    while i < k:
+        j=1
+        while j <= groupSize:
+            filenum = (groupSize*i) + j
+            shutil.move(inDir+'/'+str(filenum)+'.txt','Test')
+            j+=1
+        if type == 'LDA':
+            acm = LDA('db'+str((i+1)))
+            acm.dropDicts('db'+str((i+1)))
+            acm.learn(inDir)
+        else:
+            acm = AutoCompModule('db'+str((i+1)))
+            acm.dropDicts('db'+str((i+1)))
+            acm.learn(inDir)
+        i+=1
+        for file in os.listdir('Test'):
+            shutil.move('Test/'+file,inDir)
+    print ('Done learning')
+
 
 def checkLDA(inDir,k):
     filesAmount = len(os.listdir(inDir))
@@ -73,19 +97,19 @@ def checkLDA(inDir,k):
             shutil.move('Test/'+file,inDir)
     print ("Done learning")
 
-
-def runTest(data,k,maxChecks=5,elements=5):
+def runTest(data,k,flag,maxChecks=5,elements=5,type='ACM'):
     tests = [SB,ST,PB,PT,IS]
     results = {test:[] for test in tests}
-    DBexists=False
+    DBexists=flag
+    print ('DBexists=',DBexists)
     import numpy as np
-    for checks in np.arange(1,maxChecks+1):
-        res = kCrossFix(data, k, checks, elements, DBexists)
-        results[SB].append(res[0]/100)
-        results[ST].append(res[1]/100)
-        results[PB].append(res[2]/100)
-        results[PT].append(res[3]/100)
-        results[IS].append(res[4]/100)
+    for checks in np.arange(2,maxChecks+1):
+        res = kCrossFix(data, k, checks, elements, DBexists,type)
+        results[SB].append(res[0])
+        results[ST].append(res[1])
+        results[PB].append(res[2])
+        results[PT].append(res[3])
+        results[IS].append(res[4])
         DBexists = True
     import matplotlib.pyplot as plt
     x = np.arange(1,maxChecks+1)
@@ -104,7 +128,7 @@ def main():
     if sys.argv[1] == 'LDA':
         checkLDA(sys.argv[2],int(sys.argv[3]))
     else:
-        runTest(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+        runTest(sys.argv[1], int(sys.argv[2]), bool(int(sys.argv[3])),int(sys.argv[4]), int(sys.argv[5]),sys.argv[6])
                                                                             
     
 

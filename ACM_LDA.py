@@ -22,7 +22,7 @@ class ACM_LDA(AutoCompModule):
             print ("ERROR!!")
         DBName = self.name
         subprocess.call(["mallet/bin/mallet","import-dir","--input",inputDir,"--output",DBName+".mallet","--keep-sequence","--token-regex","[\p{L}\p{P}]*\p{L}"])
-        subprocess.call(["mallet/bin/mallet","train-topics","--input",DBName+".mallet","--output-topic-keys",DBName+"-keys.txt","--topic-word-weights-file",DBName+"-twwf.txt","--word-topic-counts-file",DBName+"-wtcf.txt","--num-topics",numTopics,"--optimize-interval","20"])
+        subprocess.call(["mallet/bin/mallet","train-topics","--input",DBName+".mallet",'--inferencer-filename',DBName+'.inf',"--output-topic-keys",DBName+"-keys.txt","--topic-word-weights-file",DBName+"-twwf.txt","--word-topic-counts-file",DBName+"-wtcf.txt","--num-topics",numTopics,"--optimize-interval","20"])
         self.addMalletInfoToDB(DBName+"-wtcf.txt", DBName+"-twwf.txt", DBName+"-keys.txt")
         self.helper.dictsToDbList()
         self.dict.insert(self.helper.list1)
