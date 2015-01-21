@@ -1,7 +1,8 @@
-import shutil,os,sys,TestingForACM
+import shutil, os ,sys, TestingForACM
 from TestingForACM import *
 from pymongo import Connection
-from ACM_LDA import ACM_LDA as LDA
+from ACM import ACM
+from Experiments import *
 
 connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
 
@@ -11,50 +12,44 @@ connect = 'mongodb://project:project1234@yeda.cs.technion.ac.il/'
 # 3- num of checks
 # 4- num of elements to compare
 
-def kCrossFix(data,k,checks,elements=5,DBexists=False,type='ACM'): 
-    numOfChecks = int(checks)
-    numOfElem = int(elements)
-
+def kCrossFix(data,k): 
     filesAmount = len(os.listdir(data))
     groupSize=int(filesAmount/k)
     i=0
-    totRes = [0,0,0,0,0]
-    if not DBexists:
-        print ("No DB given")
-        learnAll(data,k,type)
-        DBexists = True
+    folds = {n:({},{}) for n in range(1,k+1)}
     while i < k:
         j=1
         while j <= groupSize:
             filenum = (groupSize*i) + j
             shutil.move(data+'/'+str(filenum)+'.txt','Test')
             j+=1
-        if type == 'LDA':
-            ACM = LDA('db'+str(i+1))
-        else:
-            ACM = AutoCompModule('db'+str((i+1)))
-        print("iter num:"+str(i+1)+" checking every: "+str(numOfChecks))
-        (s1,s2) = simpleTest(ACM,'Test',numOfChecks)
-        (p1,p2) = probTest(ACM,'Test',numOfChecks)
-        imp = impSimTest(ACM,'Test',numOfChecks,numOfElem)
-        print("simple test result:",round(s1*100,2),"%", round(s2*100,2),"%",end = ' ')
-        print("prob test result:",round(p1*100,2),"% ",round(p2*100,2),"%")
-        print("improved simple test result:",round(imp*100,2),"%")
+        
+        acm = ACM('db'+str((i+1)))
+        acm.dropDicts('db'+str(i+1))
+        acm.learn(data)
+        
+        folds[i+1] = (weight_expr(acm,'Test') , buff_size_expr(acm,'Test'))
+        
         i+=1
-        totRes[0] += round(s1*100,2)
-        totRes[1] += round(s2*100,2)
-        totRes[2] += round(p1*100,2)
-        totRes[3] += round(p2*100,2)
-        totRes[4] += round(imp*100,2)
+        
         for file in os.listdir('Test'):
             shutil.move('Test/'+file,data)
-    return [round(float(a)/k,2) for a in totRes]
-
-SB='simple_bigram'
-ST='simple_trigram'
-PB='prob_bigram'
-PT='prob_trigram'
-IS='improv_simple'
+    
+    weight_res = [folds[fold][0] for fold in folds]
+    buff_size_res = [folds[fold][1] for fold in folds]
+    tot_w_res = {}
+    for key in weight_res[0]:
+        for res in weight_res:
+            tot_w_res[key] += res[key]
+    tot_b_res = {}
+    for key in buff_size_res[0]:
+        for res in buff_size_res:
+            tot_b_res[key] += res[key]
+    
+    tot_w_res = {key:float(tot_w_res[key]/k) for key in tot_w_res}
+    tot_b_res = {key:float(tot_b_res[key]/k) for key in tot_b_res}
+    
+    return [tot_w_res[i] for i in sorted(tot_w_res)] , [tot_b_res[i] for i in sorted(tot_b_res)]
 
 def learnAll(inDir,k,type):
     filesAmount = len(os.listdir(inDir))
@@ -97,38 +92,28 @@ def checkLDA(inDir,k):
             shutil.move('Test/'+file,inDir)
     print ("Done learning")
 
-def runTest(data,k,flag,maxChecks=5,elements=5,type='ACM'):
-    tests = [SB,ST,PB,PT,IS]
-    results = {test:[] for test in tests}
-    DBexists=flag
-    print ('DBexists=',DBexists)
+def runTest(data,k):
+    
+    weight_g , buff_size_g = kCrossFix(data, k) 
     import numpy as np
-    for checks in np.arange(2,maxChecks+1):
-        res = kCrossFix(data, k, checks, elements, DBexists,type)
-        results[SB].append(res[0])
-        results[ST].append(res[1])
-        results[PB].append(res[2])
-        results[PT].append(res[3])
-        results[IS].append(res[4])
-        DBexists = True
     import matplotlib.pyplot as plt
-    x = np.arange(1,maxChecks+1)
+
     plt.title(str(k)+'-Cross validation')
-    plt.xlabel('Number of words before completing')
+    plt.xlabel('Weight of trigram')
     plt.ylabel('Success rate')
-    plt.plot(x,results[SB],'b:',label=SB,linewidth=4)
-    plt.plot(x,results[ST],'r:',label=ST,linewidth=4)
-    plt.plot(x,results[PB],'g:',label=PB,linewidth=4)
-    plt.plot(x,results[PT],'c:',label=PT,linewidth=4)
-    plt.plot(x,results[IS],'k:',label=IS,linewidth=4)
-    plt.legend(loc='best', shadow=False, fontsize='medium')
-    plt.savefig(str(k)+'Cross.png')
+    plt.plot(range(10,101,10),weight_g,'k')
+    plt.savefig(str(k)+'Cross-weights.png')
+    plt.title(str(k)+'-Cross validation')
+    plt.xlabel('Size of buffer')
+    plt.ylabel('Success rate')
+    plt.plot(range(15,121,15),buff_size_g,'k')
+    plt.savefig(str(k)+'Cross-buffer_size.png')
 
 def main():
     if sys.argv[1] == 'LDA':
         checkLDA(sys.argv[2],int(sys.argv[3]))
     else:
-        runTest(sys.argv[1], int(sys.argv[2]), bool(int(sys.argv[3])),int(sys.argv[4]), int(sys.argv[5]),sys.argv[6])
+        runTest(sys.argv[1], int(sys.argv[2]))
                                                                             
     
 
