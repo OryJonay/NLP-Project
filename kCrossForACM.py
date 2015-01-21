@@ -28,7 +28,7 @@ def kCrossFix(data,k):
         acm.dropDicts('db'+str(i+1))
         acm.learn(data)
         
-        folds[i+1] = (weight_expr(acm,'Test') , buff_size_expr(acm,'Test'))
+        folds[i+1] = (weight_expr(acm,'Test') , None)#buff_size_expr(acm,'Test')))
         
         i+=1
         
@@ -36,20 +36,20 @@ def kCrossFix(data,k):
             shutil.move('Test/'+file,data)
     
     weight_res = [folds[fold][0] for fold in folds]
-    buff_size_res = [folds[fold][1] for fold in folds]
+    #buff_size_res = [folds[fold][1] for fold in folds]
     tot_w_res = {}
     for key in weight_res[0]:
         for res in weight_res:
             tot_w_res[key] += res[key]
     tot_b_res = {}
-    for key in buff_size_res[0]:
-        for res in buff_size_res:
-            tot_b_res[key] += res[key]
+    #for key in buff_size_res[0]:
+     #   for res in buff_size_res:
+      #      tot_b_res[key] += res[key]
     
     tot_w_res = {key:float(tot_w_res[key]/k) for key in tot_w_res}
-    tot_b_res = {key:float(tot_b_res[key]/k) for key in tot_b_res}
+    #tot_b_res = {key:float(tot_b_res[key]/k) for key in tot_b_res}
     
-    return [tot_w_res[i] for i in sorted(tot_w_res)] , [tot_b_res[i] for i in sorted(tot_b_res)]
+    return [tot_w_res[i] for i in sorted(tot_w_res)] ,None# [tot_b_res[i] for i in sorted(tot_b_res)]
 
 def learnAll(inDir,k,type):
     filesAmount = len(os.listdir(inDir))
@@ -94,7 +94,7 @@ def checkLDA(inDir,k):
 
 def runTest(data,k):
     
-    weight_g , buff_size_g = kCrossFix(data, k) 
+    weight_g , _ = kCrossFix(data, k) 
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -103,11 +103,11 @@ def runTest(data,k):
     plt.ylabel('Success rate')
     plt.plot(range(10,101,10),weight_g,'k')
     plt.savefig(str(k)+'Cross-weights.png')
-    plt.title(str(k)+'-Cross validation')
-    plt.xlabel('Size of buffer')
-    plt.ylabel('Success rate')
-    plt.plot(range(15,121,15),buff_size_g,'k')
-    plt.savefig(str(k)+'Cross-buffer_size.png')
+    #plt.title(str(k)+'-Cross validation')
+    #plt.xlabel('Size of buffer')
+    #plt.ylabel('Success rate')
+    #plt.plot(range(15,121,15),buff_size_g,'k')
+    #plt.savefig(str(k)+'Cross-buffer_size.png')
 
 def main():
     if sys.argv[1] == 'LDA':
@@ -118,4 +118,8 @@ def main():
     
 
 if __name__ == '__main__':
+    import signal
+    signal.signal(signal.SIGHUP,signal.SIG_IGN)
+    signal.signal(signal.SIGINT,signal.SIG_IGN)
+    signal.signal(signal.SIGTERM,signal.SIG_IGN)
     main()

@@ -1,7 +1,22 @@
 from ACM import ACM
 import os,re,sys
+from time import clock
+
+def timed(f):
+    '''decorator for printing the timing of functions
+    usage: 
+    @timed
+    def some_funcion(args...):'''
+    
+    def wrap(*x, **d):
+        start = clock()
+        res = f(*x, **d)
+        print(f.__name__, ':', clock() - start)
+        return res
+    return wrap
 
 def weight_expr(ACM,test_dir):
+    @timed
     def TestForFile(ACM,testFile,weight,checkSpace=1,listSize=10,listTstSize=5):
         with open(testFile,'r',encoding='utf-8') as test:
             numOfChecks = 0
@@ -39,7 +54,7 @@ def weight_expr(ACM,test_dir):
             for f in sorted(os.listdir(test_dir)):
                 res = TestForFile(ACM,test_dir + '/' + f, weight)
                 sys.stdout.flush()
-                print(str(int((i*100)/size))+"%",end="\r") 
+                print(str(int((i*10)/size))+"%",end="\r") 
                 i+=1
                 sums[weight] += res
             
@@ -88,7 +103,7 @@ def buff_size_expr(ACM,test_dir):
             for f in sorted(os.listdir(test_dir)):
                 res = TestForFile(ACM,test_dir + '/' + f, buffSize = buff_size)
                 sys.stdout.flush()
-                print(str(int((i*100)/size))+"%",end="\r") 
+                print(str(int((i*100)/(size*8)))+"%",end="\r") 
                 i+=1
                 sums[buff_size] += res
             

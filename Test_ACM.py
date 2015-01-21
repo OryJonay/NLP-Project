@@ -2,6 +2,7 @@ import pymongo, os, sys, re
 import ACM
 from ACM import ACM
 import numpy as np
+from time import clock
 
 def check_success(word,lst1,lst2,lst3,succ):
     succ["ngram"] = succ["ngram"] + 1 if word in lst1 else succ["ngram"]
@@ -11,7 +12,7 @@ def check_success(word,lst1,lst2,lst3,succ):
 def TestForFile(ACM,testFile,checkSpace,listSize,listTstSize,buffSize):
     with open(testFile,'r',encoding='utf-8') as test:
         numOfChecks = 0
-        succ = {"ngram":[0 for i in xrange(2*listSize+1)],"topic":[0 for i in xrange(2*listSize+1)],"snipped_topic":[0 for i in xrange(2*listSize+1)]}
+        succ = {"ngram":0,"topic":0,"snipped_topic":0}
         i = checkSpace
         buff = []
         for line in test:
@@ -27,7 +28,9 @@ def TestForFile(ACM,testFile,checkSpace,listSize,listTstSize,buffSize):
                     pprev = prev
                     prev = word
                 else:
+                    start = clock()
                     a,b = ACM.getBestLists(pprev,prev,listSize)
+                    print ('Extracting from DB',clock()-start)
                     if a is None:
                         pprev = prev
                         prev = word
@@ -36,9 +39,15 @@ def TestForFile(ACM,testFile,checkSpace,listSize,listTstSize,buffSize):
                     snipped_buff.reverse()
                     if buffSize > len(buff):
                         snipped_buff = buff
+                    start = clock()
                     simp_res = ACM.setListByNgram(a,b)
+                    print ('Simple test',clock()-start)
+                    start = clock()
                     top_res = ACM.setListByTopic(a,b,buff)
+                    print ('Topic test',clock()-start)
+                    start = clock()
                     top_sbuff_res = ACM.setListByTopic(a,b,snipped_buff)
+                    print ('Snipped Topic test',clock()-start)
                     check_success(word, simp_res[:listTstSize], top_res[:listTstSize], top_sbuff_res[:listTstSize], succ)
                     numOfChecks += 1
                     pprev=prev
