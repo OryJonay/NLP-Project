@@ -114,6 +114,10 @@ def main():
         checkLDA(sys.argv[2],int(sys.argv[3]))
     else:
         runTest(sys.argv[1], int(sys.argv[2]))
+        with open('finish.txt','w') as finish:
+            finish.write('finish')
+        from notifier import notify
+        notify()
                                                                             
     
 
